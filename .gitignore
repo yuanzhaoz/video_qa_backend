@@ -1,0 +1,5 @@
+checkpoints
+datasets
+pretrained
+*.avi
+*.mp4
