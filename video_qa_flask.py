@@ -16,35 +16,61 @@ app.config['CORS_HEADERS'] = 'Content-Type'
 # print(app.instance_path)
 # print(app.root_path)
 
-PRETRAINED = 'checkpoints/ckpt_pt_howtovqa69m.pth'
-vqa_model = VQA(PRETRAINED)
+PRETRAINED_howtovqa69m = 'checkpoints/ckpt_pt_howtovqa69m.pth'
+PRETRAINED_ivqa = 'checkpoints/ckpt_ft_ivqa.pth'
+curr_selected_model = 'howtovqa69m'
+
+vqa_model = VQA(PRETRAINED_howtovqa69m)
+# vqa_model_ivqa = VQA(PRETRAINED_ivqa)
 
 @app.post("/video_qa")
 def respond():
     print(f'{request.json}')
 
-    # start = int(request.form['start'])
-    # end = int(request.form['end'])
-    # question = request.form['question']
-
-    start = int(request.json['start'])
-    end = int(request.json['end'])
+    start_mins = int(request.json['start_mins'])
+    start_secs = int(request.json['start_secs'])
+    end_mins = int(request.json['end_mins'])
+    end_secs = int(request.json['end_secs'])
     question = request.json['question']
-    video_path = f'/home/SERILOCAL/yuanzhao.z/video_qa_web/video_qa_frontend/src/assets/{request.json["selected_video"]}'
+    selected_model = request.json['selected_model']
+    video_path = f'/home/SERILOCAL/yuanzhao.z/video_qa_web/video_qa_frontend/src/assets/{request.json["selected_video"]}.mp4'
+    global curr_selected_model
+    global vqa_model
+
+    if curr_selected_model != selected_model:
+        if selected_model == 'howtovqa69m':
+            print(f'====== select howtovqa69m =====')
+            del vqa_model
+            vqa_model =  VQA(PRETRAINED_howtovqa69m)
+            # vqa_model.load_pretrained(PRETRAINED_howtovqa69m)
+            curr_selected_model = 'howtovqa69m'
+            
+        elif selected_model == 'ivqa':
+            print(f'====== select ivqa =====')
+            del vqa_model
+            vqa_model =  VQA(PRETRAINED_ivqa)
+            # vqa_model.load_pretrained(PRETRAINED_ivqa)
+            curr_selected_model = 'ivqa'
+            
 
     print(video_path)
     vidFile = cv.VideoCapture(video_path)
     fps = vidFile.get(cv.CAP_PROP_FPS)
 
-    print(start)
-    print(end)
+    print(start_mins)
+    print(start_secs)
+    print(end_mins)
+    print(end_secs)
     print(video_path)
     print(fps)
     print(question)
+    print(selected_model)
 
-    start_frame = int(start*fps)
-    end_frame = int(end*fps)
+    start_frame = int((start_mins*60+start_secs)*fps)
+    end_frame = int((end_mins*60+end_secs)*fps)
     assert start_frame<end_frame
+    print(start_frame)
+    print(end_frame)
     # video_writer = cv.VideoWriter('selected_clip.avi', 0, fps, (width,height))
 
     width = 0
@@ -79,14 +105,21 @@ def hello():
 
 @app.route("/get_video_file_default")
 def get_video_file_default():
-    print('======================')
     return send_file(f'../video_qa_frontend/src/assets/steak.mp4')
 
 @app.route("/get_video_file/<video_id>")
 def get_video_file(video_id):
-    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
     print(f'../video_qa_frontend/src/assets/{video_id}.mp4')
     return send_file(f'../video_qa_frontend/src/assets/{video_id}.mp4')
+
+# @app.route("/select_model/<model_id>")
+# def select_model(model_id):
+#     if model_id != selected_model_id:
+#         if model_id == 'howtovqa69m':
+#             PRETRAINED = 'checkpoints/ckpt_pt_howtovqa69m.pth'
+#         elif model_id == 'ivqa':
+#             PRETRAINED = 'checkpoints/ckpt_ft_ivqa.pth'
+#         vqa_model = VQA(PRETRAINED)
 
 @app.route("/video_list")
 def get_video_list():
@@ -102,4 +135,9 @@ def get_video_list():
     return {'Videos':video_list}, 200
 
 # if __name__ == "__main__":
-#     app.run(debug=True, host="0.0.0.0", port=8081)  # noqa}
+    # PRETRAINED_howtovqa69m = 'checkpoints/ckpt_pt_howtovqa69m.pth'
+    # PRETRAINED_ivqa = 'checkpoints/ckpt_ft_ivqa.pth'
+    # # curr_selected_model = 'howtovqa69m'
+
+    # vqa_model = VQA(PRETRAINED_howtovqa69m)
+    # app.run(debug=True, host="0.0.0.0", port=5000)  # noqa}

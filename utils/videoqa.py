@@ -23,7 +23,7 @@ class VQA():
 
         # get answer embeddings
         self.bert_tokenizer = DistilBertTokenizer.from_pretrained("distilbert-base-uncased")
-        self.a2id, self.id2a, a2v = compute_a2v(
+        self.a2id, self.id2a, self.a2v = compute_a2v(
             vocab_path=self.args.vocab_path,
             bert_tokenizer=self.bert_tokenizer,
             amax_words=self.args.amax_words,
@@ -46,21 +46,27 @@ class VQA():
         self.model.cuda()
 
         # Load pretrain path
-        self.model = nn.DataParallel(self.model)
+        self.model = nn.DataParallel(self.model)#, device_ids=[0])
         self.model.load_state_dict(torch.load(pretrain_path))
 
         self.model.eval()
-        self.model.module._compute_answer_embedding(a2v)
+        self.model.module._compute_answer_embedding(self.a2v)
 
         # Video Extractor
         self.video_extractor = S3D(512, space_to_depth=True, embd=1, feature_map=0)
         self.video_extractor.load_state_dict(torch.load(S3D_PATH))
         self.video_extractor.eval()
-        self.video_extractor = torch.nn.DataParallel(self.video_extractor)
+        self.video_extractor = torch.nn.DataParallel(self.video_extractor)#, device_ids=[0])
         self.video_extractor = self.video_extractor.cuda()
         self.preprocess = Preprocessing(num_frames=16)
 
         print('Model loaded!')
+
+    def load_pretrained(self, pretrain_path):
+        self.model.load_state_dict(torch.load(pretrain_path))
+
+        self.model.eval()
+        self.model.module._compute_answer_embedding(self.a2v)
 
     def response(self, video_path, question_txt):
         # Tokenize Question
